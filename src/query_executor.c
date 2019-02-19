@@ -91,8 +91,7 @@ ReturnElementNode* _NewReturnElementNode(const char *alias, AR_ExpNode *exp) {
     return elem;
 }
 
-void _oldExpandCollapsedNodes(void) {
-    AST *ast = AST_GetFromLTS();
+void ExpandCollapsedNodes(AST *ast) {
     char buffer[256];
     GraphContext *gc = GraphContext_GetFromLTS();
 
@@ -340,16 +339,37 @@ AST_Validation AST_PerformValidations(RedisModuleCtx *ctx, const cypher_parse_re
     ast->matchNode = New_AST_MatchNode(patterns);
 }
 
-void ModifyAST(GraphContext *gc, AST *ast, const cypher_parse_result_t *new_ast) {
+static void _AST_optimize_traversal_direction(AST *ast) {
+    /* Inspect each MATCH pattern,
+     * see if the number of edges going from right to left ()<-[]-()
+     * is greater than the number of edges going from left to right ()-[]->()
+     * in which case it's worth reversing the pattern to reduce
+     * matrix transpose operations. */
+
+    bool should_reverse = false;
+    size_t pattern_count = Vector_Size(ast->matchNode->patterns);
+    for(int i = 0; i < pattern_count; i++) {
+        Vector *pattern;
+        Vector_Get(ast->matchNode->patterns, i, &pattern);
+
+        if(_AST_should_reverse_pattern(pattern)) {
+            should_reverse = true;
+            break;
+        }
+    }
+
+    if(should_reverse) _AST_reverse_match_patterns(ast);
+}
+
+void ModifyAST(GraphContext *gc, AST *ast, NEWAST *new_ast) {
+    if(ast->matchNode) _AST_optimize_traversal_direction(ast);
+
     if(ast->mergeNode) {
-        /* Create match clause which will try to match 
+        /* Create match clause which will try to match
          * against pattern specified within merge clause. */
         _replicateMergeClauseToMatchClause(ast);
     }
 
-    // if(ReturnClause_ContainsCollapsedNodes(ast->returnNode) == 1) {
-    if(NEWAST_ReturnClause_ContainsCollapsedNodes(new_ast) == 1) {
-        /* Expand collapsed nodes. */
-        _returnClause_ExpandCollapsedNodes(gc, ast);
-    }
+    AST_NameAnonymousNodes(ast);
+    _inlineProperties(ast);
 }
