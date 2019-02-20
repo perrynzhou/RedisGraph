@@ -10,6 +10,7 @@
 
 #include "ast_common.h"
 #include "../util/triemap/triemap.h"
+// #include "../arithmetic/arithmetic_expression.h"
 #include "../../deps/libcypher-parser/lib/src/cypher-parser.h"
 
 typedef enum {
@@ -21,7 +22,7 @@ typedef enum {
 typedef struct {
     char *alias;
     char *label;
-    // const cypher_astnode_t *ast_ref;
+    const cypher_astnode_t *ast_ref;
     AST_GraphEntityType t;
 } NEWAST_GraphEntity;
 
