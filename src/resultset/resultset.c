@@ -158,14 +158,19 @@ void ResultSet_CreateHeader(ResultSet *resultset, const AST *ast) {
     }
 
     for(int i = 0; i < header->columns_len; i++) {
-        AST_ReturnElementNode* returnElementNode = ast->returnNode->returnElements[i];
+        // AST_Entity *elem = ast->return_expressions[i];
+        ReturnElementNode *elem = ast->return_expressions[i];
 
-        AR_ExpNode* ar_exp = AR_EXP_BuildFromAST(ast, returnElementNode->exp);
-
-        char* column_name;
-        AR_EXP_ToString(ar_exp, &column_name);
-        Column* column = _NewColumn(column_name, returnElementNode->alias);
-        AR_EXP_Free(ar_exp);
+        // TODO this seems really pointless
+        char *column_name;
+        AR_EXP_ToString(elem->exp, &column_name);
+        char *alias;
+        if (elem->alias) {
+            alias = (char*)elem->alias;
+        } else {
+            alias = column_name;
+        }
+        Column* column = _NewColumn(column_name, alias);
 
         header->columns[i] = column;
     }

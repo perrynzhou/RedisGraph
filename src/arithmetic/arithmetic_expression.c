@@ -78,7 +78,9 @@ AR_ExpNode* AR_EXP_NewVariableOperandNode(const NEWAST *ast, const char *entity_
 
     if(entity_prop) {
         node->operand.variadic.entity_prop = strdup(entity_prop);
+        // AST_Entity *e = NEWAST_GetEntity(ast, id);
         NEWAST_GraphEntity *ge = NEWAST_GetEntity(ast, id);
+
         SchemaType st = (ge->t == N_ENTITY) ? SCHEMA_NODE : SCHEMA_EDGE;
         node->operand.variadic.entity_prop_idx = Attribute_GetID(st, entity_prop);
     }

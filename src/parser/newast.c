@@ -638,10 +638,26 @@ NEWAST_GraphEntity* New_GraphEntity(const cypher_astnode_t *entity, const cypher
         // const cypher_astnode_t *alias_node = cypher_ast_projection_get_alias(entity);
         // assert(alias_node);
         // ge->alias = strdup(cypher_ast_identifier_get_name(alias_node));
-    }
+    // }
 
+    // // TODO tmp
+    // AST_Entity *ret = New_AST_Entity(ge->alias, A_ENTITY, ge);
+    // return ret;
+    }
     return ge;
 }
+
+// AST_Entity* New_AST_Entity(const char *alias, AST_EntityType t, void *ptr) {
+    // AST_Entity *ret = malloc(sizeof(AST_Entity));
+    // ret->alias = alias;
+    // ret->t = t;
+    // if (t == A_ENTITY) {
+        // ret->ge = ptr;
+    // } else {
+        // ret->exp = ptr;
+    // }
+    // return ret;
+// }
 
 void _mapReturnAliases(NEWAST *ast, unsigned int *id) {
     const cypher_astnode_t *return_clause = NEWAST_GetClause(ast->root, CYPHER_AST_RETURN);
@@ -746,6 +762,18 @@ NEWAST* NEWAST_Build(cypher_parse_result_t *parse_result) {
     return new_ast;
 }
 
+// Debug print
+void _walkTriemap(TrieMap *tm) {
+    TrieMapIterator *it = TrieMap_Iterate(tm, "", 0);
+    char *ptr;
+    tm_len_t len;
+    void *value;
+    while(TrieMapIterator_Next(it, &ptr, &len, &value)) {
+        printf("%*s\n", len, ptr);
+    }
+    TrieMapIterator_Free(it);
+}
+
 void NEWAST_BuildAliasMap(NEWAST *ast) {
   unsigned int id = 0;
   ast->identifier_map = NewTrieMap(); // Holds mapping between referred entities and IDs.
@@ -753,7 +781,9 @@ void NEWAST_BuildAliasMap(NEWAST *ast) {
   // Get graph entity identifiers from MATCH, MERGE, and CREATE clauses.
   _mapPatternIdentifiers(ast, ast->root, &id);
   // Get aliases defined by UNWIND and RETURN...AS clauses
+
   _mapReturnAliases(ast, &id);
+  // _walkTriemap(ast->identifier_map);
   /*
     unsigned int clause_count = cypher_astnode_nchildren(ast->root);
     const cypher_astnode_t *match_clauses[clause_count];

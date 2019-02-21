@@ -197,6 +197,12 @@ static Record _handoff(OpAggregate *op) {
                 int recIdx = NEWAST_GetAliasID(op->ast, alias);
                 Record_AddScalar(group->r, recIdx, res);
             }
+            // TODO aliases
+            // char *alias = op->ast->returnNode->returnElements[i]->alias;
+            // if(alias) {
+                // int recIdx = AST_GetAliasID(op->ast, alias);
+                // Record_AddScalar(group->r, recIdx, res);
+            // }
         }
     }
 

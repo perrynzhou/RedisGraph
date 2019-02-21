@@ -30,14 +30,29 @@ typedef struct {
 typedef struct AR_ExpNode AR_ExpNode;
 
 typedef struct {
-	const char *alias; 		// Alias given to this return element (using the AS keyword)
-	AR_ExpNode *exp;
+       const char *alias;              // Alias given to this return element (using the AS keyword)
+       AR_ExpNode *exp;
 } ReturnElementNode;
+
+// typedef enum {
+	// A_INVALID,
+  // A_ENTITY,
+  // A_EXPRESSION
+// } AST_EntityType;
+
+// typedef struct {
+    // union {
+        // NEWAST_GraphEntity *ge;
+        // AR_ExpNode *exp;
+    // };
+    // const char *alias;
+    // AST_EntityType t;
+// } AST_Entity;
 
 typedef struct {
     const cypher_astnode_t *root;
-    // Extensible array of entities described in MATCH, CREATE (and unwind?) clauses
-    // TODO ensure this is correct
+    // Extensible array of entities described in MATCH, MERGE, and CREATE clauses
+    // AST_Entity **defined_entities;
     NEWAST_GraphEntity **defined_entities;
     TrieMap *identifier_map;
     unsigned int order_expression_count;
@@ -87,12 +102,15 @@ unsigned int NewAST_GetTopLevelClauses(const cypher_astnode_t *query, cypher_ast
 
 const cypher_astnode_t* NEWAST_GetBody(const cypher_parse_result_t *result);
 
+// AST_Entity* New_AST_Entity(const char *alias, AST_EntityType t, void *ptr);
+
 NEWAST* NEWAST_Build(cypher_parse_result_t *parse_result);
 
 void NEWAST_BuildAliasMap(NEWAST *ast);
 
 unsigned int NEWAST_GetAliasID(const NEWAST *ast, char *alias);
 
+// AST_Entity* NEWAST_GetEntity(const NEWAST *ast, unsigned int id);
 NEWAST_GraphEntity* NEWAST_GetEntity(const NEWAST *ast, unsigned int id);
 
 NEWAST* NEWAST_GetFromLTS(void);

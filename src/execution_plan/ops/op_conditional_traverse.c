@@ -20,7 +20,7 @@ static void _setupTraversedRelations(CondTraverse *op) {
     if(op->edgeRelationCount > 0) {
         op->edgeRelationTypes = array_new(int , op->edgeRelationCount);
         for(int i = 0; i < op->edgeRelationCount; i++) {
-            const char *label = cypher_ast_label_get_name(cypher_ast_rel_pattern_get_reltype(e->ast_ref, i));
+            const char *label = cypher_ast_reltype_get_name(cypher_ast_rel_pattern_get_reltype(e->ast_ref, i));
             Schema *s = GraphContext_GetSchema(gc, label, SCHEMA_EDGE);
             if(!s) continue;
             op->edgeRelationTypes = array_append(op->edgeRelationTypes, s->id);
