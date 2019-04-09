@@ -148,6 +148,9 @@ void ResultSet_CreateHeader(ResultSet *resultset) {
     assert(resultset->header == NULL && resultset->recordCount == 0);
 
     const NEWAST *ast = NEWAST_GetFromTLS();
+    const cypher_astnode_t *ret_clause = NEWAST_GetClause(ast->root, CYPHER_AST_RETURN);
+    if (ret_clause == NULL) return;
+
     ResultSetHeader* header = rm_malloc(sizeof(ResultSetHeader));
     header->columns_len = 0;
     header->columns = NULL;

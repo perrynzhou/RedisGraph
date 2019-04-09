@@ -251,17 +251,16 @@ OpBase* ExecutionPlan_Locate_References(OpBase *root, Vector *references) {
 /* Returns an array of arithmetic expression, one for every return element.
  * caller is responsible for freeing each arithmetic expression in addition
  * to the array itself. */
-static AR_ExpNode** _ReturnClause_GetExpressions(const NEWAST *ast) {
-    AST *old_ast = AST_GetFromTLS();
-    assert(old_ast->returnNode);
+static AR_ExpNode** _ReturnClause_GetExpressions(const AST *ast) {
+    assert(ast->returnNode);
 
-    AST_ReturnNode *return_node = old_ast->returnNode;
+    AST_ReturnNode *return_node = ast->returnNode;
     unsigned int elem_count = array_len(return_node->returnElements);
     AR_ExpNode **exps = array_new(AR_ExpNode*, elem_count);
 
     for(unsigned int i = 0; i < elem_count; i++) {
         AST_ReturnElementNode *elem = return_node->returnElements[i];
-        AR_ExpNode *exp = AR_EXP_BuildFromAST(old_ast, elem->exp);
+        AR_ExpNode *exp = AR_EXP_BuildFromAST(ast, elem->exp);
         exps = array_append(exps, exp);
     }
 
@@ -271,17 +270,16 @@ static AR_ExpNode** _ReturnClause_GetExpressions(const NEWAST *ast) {
 /* Returns an array of arithmetic expression, one for every wiht element.
  * caller is responsible for freeing each arithmetic expression in addition
  * to the array itself. */
-static AR_ExpNode** _WithClause_GetExpressions(const NEWAST *ast) {
-    // assert(ast->withNode);
-    AST *old_ast = AST_GetFromTLS();
+static AR_ExpNode** _WithClause_GetExpressions(const AST *ast) {
+    assert(ast->withNode);
 
-    AST_WithNode *with_node = old_ast->withNode;
+    AST_WithNode *with_node = ast->withNode;
     unsigned int elem_count = array_len(with_node->exps);
     AR_ExpNode **exps = array_new(AR_ExpNode*, elem_count);
 
     for(unsigned int i = 0; i < elem_count; i++) {
         AST_WithElementNode *elem = with_node->exps[i];
-        AR_ExpNode *exp = AR_EXP_BuildFromAST(old_ast, elem->exp);
+        AR_ExpNode *exp = AR_EXP_BuildFromAST(ast, elem->exp);
         exps = array_append(exps, exp);
     }
 
@@ -291,23 +289,21 @@ static AR_ExpNode** _WithClause_GetExpressions(const NEWAST *ast) {
 /* Returns an array of arithmetic expression, one for every order element.
  * caller is responsible for freeing each arithmetic expression in addition
  * to the array itself. */
-static AR_ExpNode** _OrderClause_GetExpressions(const NEWAST *ast) {
-    // assert(ast && ast->orderNode);
-    AST *old_ast = AST_GetFromTLS();
-	AST_OrderNode *order_node = old_ast->orderNode;
+static AR_ExpNode** _OrderClause_GetExpressions(const AST *ast) {
+	AST_OrderNode *order_node = ast->orderNode;
 
 	unsigned int exp_count = array_len(order_node->expressions);
 	AR_ExpNode** exps = array_new(AR_ExpNode*, exp_count);
 
 	for(unsigned int i = 0; i < exp_count; i++) {
-		AR_ExpNode *exp = AR_EXP_BuildFromAST(old_ast, order_node->expressions[i]);
+		AR_ExpNode *exp = AR_EXP_BuildFromAST(ast, order_node->expressions[i]);
 		exps = array_append(exps, exp);
 	}
 
 	return exps;
 }
 
-ExecutionPlan* _NewExecutionPlan(RedisModuleCtx *ctx, GraphContext *gc, ResultSet *result_set) {
+ExecutionPlan* _NewExecutionPlan(RedisModuleCtx *ctx, GraphContext *gc, AST *old_ast, ResultSet *result_set) {
     Graph *g = gc->g;
     ExecutionPlan *execution_plan = (ExecutionPlan*)calloc(1, sizeof(ExecutionPlan));    
     execution_plan->result_set = result_set;
@@ -315,18 +311,22 @@ ExecutionPlan* _NewExecutionPlan(RedisModuleCtx *ctx, GraphContext *gc, ResultSe
     OpBase *op;
 
     NEWAST *ast = NEWAST_GetFromTLS();
-    AST *old_ast = AST_GetFromTLS();
     /* Predetermin graph size: (entities in both MATCH and CREATE clauses)
      * have graph object maintain an entity capacity, to avoid reallocs,
      * problem was reallocs done by CREATE clause, which invalidated old references in ExpandAll. */
     size_t node_count;
     size_t edge_count;
-    _Determine_Graph_Size(old_ast, &node_count, &edge_count);
+    node_count = edge_count = NEWAST_AliasCount(ast);
+    // _Determine_Graph_Size(old_ast, &node_count, &edge_count);
     QueryGraph *q = QueryGraph_New(node_count, edge_count);
     execution_plan->query_graph = q;
 
     FT_FilterNode *filter_tree = BuildFiltersTree(ast);
     execution_plan->filter_tree = filter_tree;
+
+    // unsigned int clause_count = cypher_astnode_nchildren(query);
+    // const cypher_astnode_t *match_clauses[clause_count];
+    // unsigned int match_count = NewAST_GetTopLevelClauses(query, CYPHER_AST_MATCH, match_clauses);
 
     if(old_ast->matchNode) {
         BuildQueryGraph(gc, q, old_ast->matchNode->_mergedPatterns);
@@ -449,33 +449,41 @@ ExecutionPlan* _NewExecutionPlan(RedisModuleCtx *ctx, GraphContext *gc, ResultSe
         Vector_Free(traversals);
     }
 
-    // if(ast->unwindNode) {
-        // OpBase *opUnwind = NewUnwindOp(ast);
-        // Vector_Push(ops, opUnwind);
-    // }
+    const cypher_astnode_t *unwind_clause = NEWAST_GetClause(ast->root, CYPHER_AST_UNWIND);
+    if(unwind_clause) {
+        OpBase *opUnwind = NewUnwindOp(old_ast);
+        Vector_Push(ops, opUnwind);
+    }
 
-    /* Set root operation */
-    // if(ast->createNode) {
-        // BuildQueryGraph(gc, q, ast->createNode->graphEntities);
-        // OpBase *opCreate = NewCreateOp(ctx, gc, q, execution_plan->result_set);
+    // Set root operation
+    const cypher_astnode_t *create_clause = NEWAST_GetClause(ast->root, CYPHER_AST_CREATE);
+    if(create_clause) {
+        BuildQueryGraph(gc, q, old_ast->createNode->graphEntities);
+        OpBase *opCreate = NewCreateOp(ctx, gc, old_ast, q, execution_plan->result_set);
 
-        // Vector_Push(ops, opCreate);
-    // }
+        Vector_Push(ops, opCreate);
+    }
 
-    // if(ast->mergeNode) {
-        // OpBase *opMerge = NewMergeOp(gc, execution_plan->result_set);
-        // Vector_Push(ops, opMerge);
-    // }
+    const cypher_astnode_t *merge_clause = NEWAST_GetClause(ast->root, CYPHER_AST_MERGE);
+    if(merge_clause) {
+        assert(false);
+        OpBase *opMerge = NewMergeOp(gc, execution_plan->result_set);
+        Vector_Push(ops, opMerge);
+    }
 
-    // if(ast->deleteNode) {
-        // OpBase *opDelete = NewDeleteOp(ast->deleteNode, q, gc, execution_plan->result_set);
-        // Vector_Push(ops, opDelete);
-    // }
+    const cypher_astnode_t *delete_clause = NEWAST_GetClause(ast->root, CYPHER_AST_DELETE);
+    if(delete_clause) {
+        assert(false);
+        OpBase *opDelete = NewDeleteOp(old_ast->deleteNode, q, gc, execution_plan->result_set);
+        Vector_Push(ops, opDelete);
+    }
 
-    // if(ast->setNode) {
-        // OpBase *op_update = NewUpdateOp(gc, execution_plan->result_set);
-        // Vector_Push(ops, op_update);
-    // }
+    const cypher_astnode_t *set_clause = NEWAST_GetClause(ast->root, CYPHER_AST_SET);
+    if(set_clause) {
+        assert(false);
+        OpBase *op_update = NewUpdateOp(gc, execution_plan->result_set);
+        Vector_Push(ops, op_update);
+    }
 
     char **aliases = NULL;  // Array of aliases RETURN n.v as V
     AR_ExpNode **exps = NULL;
@@ -485,14 +493,14 @@ ExecutionPlan* _NewExecutionPlan(RedisModuleCtx *ctx, GraphContext *gc, ResultSe
     const cypher_astnode_t *with_clause = NULL;
 
     if(with_clause) {
-        exps = _WithClause_GetExpressions(ast);
+        exps = _WithClause_GetExpressions(old_ast);
         // aliases = WithClause_GetAliases(ast->withNode);
         // aggregate = WithClause_ContainsAggregation(ast->withNode);
     }
 
     const cypher_astnode_t *ret_clause = NEWAST_GetClause(ast->root, CYPHER_AST_RETURN);
     if(ret_clause) {
-        exps = _ReturnClause_GetExpressions(ast);
+        exps = _ReturnClause_GetExpressions(old_ast);
         // aliases = ReturnClause_GetAliases(ast->returnNode);
         // aggregate = ReturnClause_ContainsAggregation(ast->returnNode);
     }
@@ -505,33 +513,33 @@ ExecutionPlan* _NewExecutionPlan(RedisModuleCtx *ctx, GraphContext *gc, ResultSe
     }
 
     
-    if(ret_clause && cypher_ast_return_is_distinct(ret_clause)) {
-        op = NewDistinctOp();
-        Vector_Push(ops, op);
-    }
+    if (ret_clause) {
+        if(cypher_ast_return_is_distinct(ret_clause)) {
+            op = NewDistinctOp();
+            Vector_Push(ops, op);
+        }
 
-    const cypher_astnode_t *order_clause = cypher_ast_return_get_order_by(ret_clause);
-    if(order_clause) {
-        op = NewSortOp(_OrderClause_GetExpressions(ast));
-        Vector_Push(ops, op);
-    }
+        const cypher_astnode_t *order_clause = cypher_ast_return_get_order_by(ret_clause);
+        if(order_clause) {
+            op = NewSortOp(_OrderClause_GetExpressions(old_ast));
+            Vector_Push(ops, op);
+        }
 
-    uint skip = 0;
-    const cypher_astnode_t *skip_clause = cypher_ast_return_get_skip(ret_clause);
-    if (skip_clause) {
-        skip = NEWAST_ParseIntegerNode(skip_clause);
-        OpBase *op_skip = NewSkipOp(skip);
-        Vector_Push(ops, op_skip);
-    }
+        uint skip = 0;
+        const cypher_astnode_t *skip_clause = cypher_ast_return_get_skip(ret_clause);
+        if (skip_clause) {
+            skip = NEWAST_ParseIntegerNode(skip_clause);
+            OpBase *op_skip = NewSkipOp(skip);
+            Vector_Push(ops, op_skip);
+        }
 
-    const cypher_astnode_t *limit_clause = cypher_ast_return_get_limit(ret_clause);
-    if(limit_clause) {
-        uint limit = skip + NEWAST_ParseIntegerNode(limit_clause);
-        OpBase *op_limit = NewLimitOp(limit);
-        Vector_Push(ops, op_limit);
-    }
+        const cypher_astnode_t *limit_clause = cypher_ast_return_get_limit(ret_clause);
+        if(limit_clause) {
+            uint limit = skip + NEWAST_ParseIntegerNode(limit_clause);
+            OpBase *op_limit = NewLimitOp(limit);
+            Vector_Push(ops, op_limit);
+        }
 
-    if(ret_clause) {
         op = NewResultsOp(execution_plan->result_set, q);
         Vector_Push(ops, op);
     }
@@ -618,7 +626,7 @@ ExecutionPlan* NewExecutionPlan(RedisModuleCtx *ctx, GraphContext *gc, AST **ast
     }
 
     for(unsigned int i = 0; i < array_len(ast); i++) {
-        curr_plan = _NewExecutionPlan(ctx, gc, result_set);
+        curr_plan = _NewExecutionPlan(ctx, gc, ast[i], result_set);
         if(i == 0) plan = curr_plan;
         else plan = _ExecutionPlan_Connect(plan, curr_plan, ast[i]);
 

@@ -55,8 +55,7 @@ OpBase* NewDeleteOp(AST_DeleteNode *ast_delete_node, QueryGraph *qg, GraphContex
     OpDelete *op_delete = malloc(sizeof(OpDelete));
 
     op_delete->gc = gc;
-    AST *ast = AST_GetFromTLS();
-    op_delete->ast = ast;
+    // op_delete->ast = ast;
     op_delete->node_count = 0;
     op_delete->edge_count = 0;
     op_delete->nodes_to_delete = malloc(sizeof(int) * Vector_Size(ast_delete_node->graphEntities));

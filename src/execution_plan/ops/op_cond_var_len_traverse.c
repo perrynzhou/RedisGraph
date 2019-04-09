@@ -38,11 +38,12 @@ OpBase* NewCondVarLenTraverseOp(AlgebraicExpression *ae, unsigned int minHops, u
     CondVarLenTraverse *condVarLenTraverse = malloc(sizeof(CondVarLenTraverse));
     condVarLenTraverse->g = g;
     condVarLenTraverse->ae = ae;
-    AST *ast = AST_GetFromTLS();
-    condVarLenTraverse->ast = ast;
+    // AST *ast = AST_GetFromTLS();
+    // condVarLenTraverse->ast = ast;
+    NEWAST *ast = NEWAST_GetFromTLS();
     condVarLenTraverse->relationIDs = NULL;
-    condVarLenTraverse->srcNodeIdx = AST_GetAliasID(ast, ae->src_node->alias);
-    condVarLenTraverse->destNodeIdx = AST_GetAliasID(ast, ae->dest_node->alias);
+    condVarLenTraverse->srcNodeIdx = NEWAST_GetAliasID(ast, ae->src_node->alias);
+    condVarLenTraverse->destNodeIdx = NEWAST_GetAliasID(ast, ae->dest_node->alias);
     condVarLenTraverse->minHops = minHops;
     condVarLenTraverse->maxHops = maxHops;
     condVarLenTraverse->allPathsCtx = NULL;

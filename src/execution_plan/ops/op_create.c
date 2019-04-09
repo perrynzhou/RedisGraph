@@ -13,7 +13,7 @@
 
 void _SetModifiedEntities(OpCreate *op) {
     // TODO
-    AST *ast = AST_GetFromTLS();
+    AST *ast = op->ast;
     /* Determin which entities are modified by create op. */
     size_t create_entity_count = Vector_Size(op->ast->createNode->graphEntities);
     op->nodes_to_create = malloc(sizeof(NodeCreateCtx) * create_entity_count);
@@ -64,10 +64,9 @@ void _SetModifiedEntities(OpCreate *op) {
     assert((op->node_count + op->edge_count) > 0);
 }
 
-OpBase* NewCreateOp(RedisModuleCtx *ctx, GraphContext *gc, QueryGraph *qg, ResultSet *result_set) {
+OpBase* NewCreateOp(RedisModuleCtx *ctx, GraphContext *gc, AST *ast, QueryGraph *qg, ResultSet *result_set) {
     OpCreate *op_create = calloc(1, sizeof(OpCreate));
     op_create->gc = gc;
-    AST *ast = AST_GetFromTLS();
     op_create->ast = ast;
     op_create->qg = qg;
     op_create->records = NULL;

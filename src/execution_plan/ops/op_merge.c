@@ -153,8 +153,8 @@ static void _CreateEntities(OpMerge *op, Record r) {
 OpBase* NewMergeOp(GraphContext *gc, ResultSet *result_set) {
     OpMerge *op_merge = malloc(sizeof(OpMerge));
     op_merge->gc = gc;
-    AST *ast = AST_GetFromTLS();
-    op_merge->ast = ast;
+    // AST *ast = AST_GetFromTLS();
+    // op_merge->ast = ast;
     op_merge->result_set = result_set;
     op_merge->matched = false;
     op_merge->created = false;

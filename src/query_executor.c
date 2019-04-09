@@ -93,7 +93,8 @@ ReturnElementNode* _NewReturnElementNode(const char *alias, AR_ExpNode *exp) {
 }
 
 void _oldExpandCollapsedNodes(void) {
-    AST *ast = AST_GetFromTLS();
+    AST **ast_arr = AST_GetFromTLS();
+    AST *ast = ast_arr[array_len(ast_arr) - 1];
     char buffer[256];
     GraphContext *gc = GraphContext_GetFromTLS();
 
@@ -235,7 +236,6 @@ void _oldExpandCollapsedNodes(void) {
 
 void ExpandCollapsedNodes(NEWAST *ast) {
 
-    _oldExpandCollapsedNodes();
     char buffer[256];
     GraphContext *gc = GraphContext_GetFromTLS();
 
