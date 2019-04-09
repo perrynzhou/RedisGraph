@@ -93,9 +93,9 @@ ReturnElementNode* _NewReturnElementNode(const char *alias, AR_ExpNode *exp) {
 }
 
 void _oldExpandCollapsedNodes(void) {
-    AST *ast = AST_GetFromLTS();
+    AST *ast = AST_GetFromTLS();
     char buffer[256];
-    GraphContext *gc = GraphContext_GetFromLTS();
+    GraphContext *gc = GraphContext_GetFromTLS();
 
     /* Expanding the RETURN clause is a two phase operation:
      * 1. Scan through every arithmetic expression within the original
@@ -237,7 +237,7 @@ void ExpandCollapsedNodes(NEWAST *ast) {
 
     _oldExpandCollapsedNodes();
     char buffer[256];
-    GraphContext *gc = GraphContext_GetFromLTS();
+    GraphContext *gc = GraphContext_GetFromTLS();
 
     unsigned int return_expression_count = array_len(ast->return_expressions);
     ReturnElementNode **expandReturnElements = array_new(ReturnElementNode*, return_expression_count);
@@ -339,57 +339,30 @@ void ExpandCollapsedNodes(NEWAST *ast) {
     ast->return_expressions = expandReturnElements;
 }
 
-AST* ParseQuery(const char *query, size_t qLen, char **errMsg) {
-    return Query_Parse(query, qLen, errMsg);
+AST** ParseQuery(const char *query, size_t qLen, char **errMsg) {
+    AST **asts = Query_Parse(query, qLen, errMsg);
+    if(asts) {
+        for(int i = 0; i < array_len(asts); i++) {
+            /* Create match clause which will try to match against pattern specified within merge clause. */
+            if(asts[i]->mergeNode) _replicateMergeClauseToMatchClause(asts[i]);
+
+            AST_NameAnonymousNodes(asts[i]);
+            // Mark each alias with a unique ID.
+            AST_WithNode *withClause = (i > 0) ? asts[i-1]->withNode : NULL;
+            AST_MapAliasToID(asts[i], withClause);
+        }
+    }
+    return asts;
 }
 
 AST_Validation AST_PerformValidations(RedisModuleCtx *ctx, const cypher_astnode_t *ast) {
     char *reason;
-    int ast_count = array_len(ast);
-    for(int i = 0; i < ast_count; i++) {
-        if (AST_Validate(ast[i], &reason) != AST_VALID) {
-            RedisModule_ReplyWithError(ctx, reason);
-            free(reason);
-            return AST_INVALID;
-        }
+    AST_Validation res = NEWAST_Validate(ast, &reason);
+    if (res != AST_VALID) {
+        RedisModule_ReplyWithError(ctx, reason);
+        free(reason);
+        return AST_INVALID;
     }
-    
-    /* For the timebeing we do not allow re-definition of identifiers
-     * for example:
-     * MATCH (p) WITH max(p.v) AS maximum MATCH (p) RETURN p 
-     * TODO: lift this restriction. */
-    char *redefined_identifier = NULL;
-    if(ast_count > 1) {
-        TrieMap *global_identifiers = AST_Identifiers(ast[0]);
-        for(int i = 1; i < ast_count; i++) {
-            TrieMap *local_identifiers = AST_Identifiers(ast[i]);
-            TrieMapIterator *it = TrieMap_Iterate(local_identifiers, "", 0);
-            void *v;
-            tm_len_t len;
-            char *identifier;
-            while(TrieMapIterator_Next(it, &identifier, &len, &v)) {
-                if(!TrieMap_Add(global_identifiers, identifier, len, NULL, TrieMap_DONT_CARE_REPLACE)) {
-                    redefined_identifier = rm_malloc(sizeof(char) * (len+1));
-                    memcpy(redefined_identifier, identifier, len);
-                    redefined_identifier[len] = '\0';
-                    break;
-                }
-            }
-            TrieMapIterator_Free(it);
-            TrieMap_Free(local_identifiers, TrieMap_NOP_CB);
-            if(redefined_identifier) break;
-        }
-        TrieMap_Free(global_identifiers, TrieMap_NOP_CB);
-
-        if(redefined_identifier) {
-            asprintf(&reason, "Identifier '%s' defined more than once", redefined_identifier);
-            RedisModule_ReplyWithError(ctx, reason);
-            rm_free(redefined_identifier);
-            free(reason);
-            return AST_INVALID;
-        }
-    }
-
     return AST_VALID;
 }
 
@@ -418,13 +391,50 @@ static bool _AST_should_reverse_pattern(Vector *pattern) {
     return (transposed > edge_count/2);
 }
 
-AST_Validation AST_PerformValidations(RedisModuleCtx *ctx, const cypher_parse_result_t *ast) {
-    char *reason;
-    AST_Validation res = NEWAST_Validate(ast, &reason);
-    if (res != AST_VALID) {
-        RedisModule_ReplyWithError(ctx, reason);
-        free(reason);
-        return AST_INVALID;
+/* Construct a new MATCH clause by cloning the current one
+ * and reversing traversal patterns to reduce matrix transpose
+ * operation. */
+static void _AST_reverse_match_patterns(AST *ast) {
+    size_t pattern_count = Vector_Size(ast->matchNode->patterns);
+    Vector *patterns = NewVector(Vector*, pattern_count);
+
+    for(int i = 0; i < pattern_count; i++) {
+        Vector *pattern;
+        Vector_Get(ast->matchNode->patterns, i, &pattern);
+
+        size_t pattern_length = Vector_Size(pattern);
+        Vector *v = NewVector(AST_GraphEntity*, pattern_length);
+
+        if(!_AST_should_reverse_pattern(pattern)) {
+            // No need to reverse, simply clone pattern.
+            for(int j = 0; j < pattern_length; j++) {
+                AST_GraphEntity *e;
+                Vector_Get(pattern, j, &e);
+                e = Clone_AST_GraphEntity(e);
+                Vector_Push(v, e);
+            }
+        }
+        else {
+            /* Reverse pattern:
+             * Create a new pattern where edges been reversed.
+             * Nodes should be introduced in reverse order:
+             * (C)<-[B]-(A)
+             * (A)-[B]->(C) */
+            for(int j = pattern_length-1; j >= 0; j--) {
+                AST_GraphEntity *e;
+                Vector_Get(pattern, j, &e);
+                e = Clone_AST_GraphEntity(e);
+
+                if(e->t == N_LINK) {
+                    AST_LinkEntity *l = (AST_LinkEntity*)e;
+                    // Reverse pattern.
+                    if(l->direction == N_RIGHT_TO_LEFT) l->direction = N_LEFT_TO_RIGHT;
+                    else l->direction = N_RIGHT_TO_LEFT;
+                }
+                Vector_Push(v, e);
+            }
+        }
+        Vector_Push(patterns, v);
     }
 
 	Vector_Free(ast->matchNode->_mergedPatterns);
@@ -493,7 +503,7 @@ void _BuildReturnExpressions(NEWAST *ast) {
             // TODO standardize logic (make a separate routine for this, can drop ID pointer elsewhere
             unsigned int *entityID = malloc(sizeof(unsigned int));
             *entityID = ast->identifier_map->cardinality;
-            TrieMap_Add(ast->identifier_map, (char*)alias, strlen(alias), entityID, TrieMap_NOP_REPLACE);
+            TrieMap_Add(ast->identifier_map, (char*)alias, strlen(alias), entityID, TrieMap_DONT_CARE_REPLACE);
         } else if (cypher_astnode_type(expr) == CYPHER_AST_IDENTIFIER) {
             // TODO don't need to do anything, delete this section once validated
             // alias = cypher_ast_identifier_get_name(expr);
@@ -529,7 +539,7 @@ void _prepareResultset(NEWAST *ast) {
     ExpandCollapsedNodes(ast);
     ResultSet_CreateHeader(op->resultset);
 
-    // const NEWAST *ast = NEWAST_GetFromLTS();
+    // const NEWAST *ast = NEWAST_GetFromTLS();
 
     op->orderByExpCount = ast->order_expression_count;
     op->returnExpCount = ast->return_expression_count;
@@ -551,17 +561,11 @@ void _prepareResultset(NEWAST *ast) {
 }
 */
 
-void ModifyAST(GraphContext *gc, AST *ast, NEWAST *new_ast) {
-    if(ast->matchNode) _AST_optimize_traversal_direction(ast);
-
-    if(ast->mergeNode) {
-        /* Create match clause which will try to match
-         * against pattern specified within merge clause. */
-        _replicateMergeClauseToMatchClause(ast);
+void ModifyAST(GraphContext *gc, AST **ast, NEWAST *new_ast) {
+    for(int i = 0; i < array_len(ast); i++) {
+        if(ast[i]->matchNode) _AST_optimize_traversal_direction(ast[i]);
+        _inlineProperties(ast[i]);
     }
-
-    AST_NameAnonymousNodes(ast);
-    _inlineProperties(ast);
 
     NEWAST_BuildAliasMap(new_ast);
 

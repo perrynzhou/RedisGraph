@@ -32,12 +32,13 @@ static void _setupTraversedRelations(CondVarLenTraverse *op) {
     }
 }
 
-OpBase* NewCondVarLenTraverseOp(AlgebraicExpression *ae, unsigned int minHops, unsigned int maxHops, Graph *g, AST *ast) {
+OpBase* NewCondVarLenTraverseOp(AlgebraicExpression *ae, unsigned int minHops, unsigned int maxHops, Graph *g) {
     assert(ae && minHops <= maxHops && g && ae->operand_count == 1);
 
     CondVarLenTraverse *condVarLenTraverse = malloc(sizeof(CondVarLenTraverse));
     condVarLenTraverse->g = g;
     condVarLenTraverse->ae = ae;
+    AST *ast = AST_GetFromTLS();
     condVarLenTraverse->ast = ast;
     condVarLenTraverse->relationIDs = NULL;
     condVarLenTraverse->srcNodeIdx = AST_GetAliasID(ast, ae->src_node->alias);

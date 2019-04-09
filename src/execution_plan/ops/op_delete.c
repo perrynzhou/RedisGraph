@@ -51,10 +51,11 @@ void _DeleteEntities(OpDelete *op) {
     Graph_ReleaseLock(op->gc->g);
 }
 
-OpBase* NewDeleteOp(AST_DeleteNode *ast_delete_node, QueryGraph *qg, GraphContext *gc, ResultSet *result_set, AST *ast) {
+OpBase* NewDeleteOp(AST_DeleteNode *ast_delete_node, QueryGraph *qg, GraphContext *gc, ResultSet *result_set) {
     OpDelete *op_delete = malloc(sizeof(OpDelete));
 
     op_delete->gc = gc;
+    AST *ast = AST_GetFromTLS();
     op_delete->ast = ast;
     op_delete->node_count = 0;
     op_delete->edge_count = 0;
