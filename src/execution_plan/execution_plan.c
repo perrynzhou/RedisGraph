@@ -500,9 +500,15 @@ ExecutionPlan* _NewExecutionPlan(RedisModuleCtx *ctx, GraphContext *gc, AST *old
 
     const cypher_astnode_t *ret_clause = NEWAST_GetClause(ast->root, CYPHER_AST_RETURN);
     if(ret_clause) {
-        exps = _ReturnClause_GetExpressions(old_ast);
-        // aliases = ReturnClause_GetAliases(ast->returnNode);
-        // aggregate = ReturnClause_ContainsAggregation(ast->returnNode);
+        // exps = _ReturnClause_GetExpressions(old_ast);
+        uint exp_count = array_len(ast->return_expressions);
+        // TODO silly
+        exps = array_new(sizeof(AR_ExpNode), exp_count);
+        for (uint i = 0; i < exp_count; i ++) {
+            exps = array_append(exps, ast->return_expressions[i]->exp);
+        }
+        aliases = ReturnClause_GetAliases(old_ast->returnNode);
+        aggregate = ReturnClause_ContainsAggregation(old_ast->returnNode);
     }
 
 
