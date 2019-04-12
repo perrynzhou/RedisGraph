@@ -238,6 +238,9 @@ AR_ExpNode* AR_EXP_FromExpression(const NEWAST *ast, const cypher_astnode_t *exp
     // TODO Possibly implement these, replacing AST_Filter types
     } else if (type == CYPHER_AST_UNARY_OPERATOR) {
         // unary
+        const cypher_astnode_t *arg = cypher_ast_unary_operator_get_argument(expr); // CYPHER_AST_EXPRESSION
+        const cypher_operator_t *operator = cypher_ast_unary_operator_get_operator(expr);
+        AST_Operator operator_enum = NEWAST_ConvertOperatorNode(operator);
         printf("\ngot unary\n");
         assert(false);
     } else if (type == CYPHER_AST_BINARY_OPERATOR) {
