@@ -16,39 +16,39 @@
 
 extern pthread_key_t _tlsNEWASTKey;  // Thread local storage NEWAST key.
 
-void _index_operation(RedisModuleCtx *ctx, GraphContext *gc, AST_IndexNode *indexNode) {
+// void _index_operation(RedisModuleCtx *ctx, GraphContext *gc, AST_IndexNode *indexNode) {
     /* Set up nested array response for index creation and deletion,
      * Following the response struture of other queries:
      * First element is an empty result-set followed by statistics.
      * We'll enqueue one string response to indicate the operation's success,
      * and the query runtime will be appended after this call returns. */
-    RedisModule_ReplyWithArray(ctx, 2); // Two Array
-    RedisModule_ReplyWithArray(ctx, 0); // Empty result-set
-    RedisModule_ReplyWithArray(ctx, 2); // Statistics.
+    // RedisModule_ReplyWithArray(ctx, 2); // Two Array
+    // RedisModule_ReplyWithArray(ctx, 0); // Empty result-set
+    // RedisModule_ReplyWithArray(ctx, 2); // Statistics.
 
-  switch(indexNode->operation) {
-    case CREATE_INDEX:
-      if (GraphContext_AddIndex(gc, indexNode->label, indexNode->property) != INDEX_OK) {
-        // Index creation may have failed if the label or property was invalid, or the index already exists.
-        RedisModule_ReplyWithSimpleString(ctx, "(no changes, no records)");
-        break;
-      }
-      RedisModule_ReplyWithSimpleString(ctx, "Indices added: 1");
-      break;
-    case DROP_INDEX:
-      if (GraphContext_DeleteIndex(gc, indexNode->label, indexNode->property) == INDEX_OK) {
-        RedisModule_ReplyWithSimpleString(ctx, "Indices removed: 1");
-      } else {
-        char *reply;
-        asprintf(&reply, "ERR Unable to drop index on :%s(%s): no such index.", indexNode->label, indexNode->property);
-        RedisModule_ReplyWithError(ctx, reply);
-        free(reply);
-      }
-      break;
-    default:
-      assert(0);
-  }
-}
+  // switch(indexNode->operation) {
+    // case CREATE_INDEX:
+      // if (GraphContext_AddIndex(gc, indexNode->label, indexNode->property) != INDEX_OK) {
+        // // Index creation may have failed if the label or property was invalid, or the index already exists.
+        // RedisModule_ReplyWithSimpleString(ctx, "(no changes, no records)");
+        // break;
+      // }
+      // RedisModule_ReplyWithSimpleString(ctx, "Indices added: 1");
+      // break;
+    // case DROP_INDEX:
+      // if (GraphContext_DeleteIndex(gc, indexNode->label, indexNode->property) == INDEX_OK) {
+        // RedisModule_ReplyWithSimpleString(ctx, "Indices removed: 1");
+      // } else {
+        // char *reply;
+        // asprintf(&reply, "ERR Unable to drop index on :%s(%s): no such index.", indexNode->label, indexNode->property);
+        // RedisModule_ReplyWithError(ctx, reply);
+        // free(reply);
+      // }
+      // break;
+    // default:
+      // assert(0);
+  // }
+// }
 
 void _MGraph_Query(void *args) {
     CommandCtx *qctx = (CommandCtx*)args;

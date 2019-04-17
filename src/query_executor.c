@@ -11,10 +11,8 @@
 #include "schema/schema.h"
 #include "util/arr.h"
 #include "util/vector.h"
-#include "parser/grammar.h"
 #include "arithmetic/agg_ctx.h"
 #include "arithmetic/repository.h"
-#include "parser/parser_common.h"
 #include "../deps/libcypher-parser/lib/src/cypher-parser.h"
 
 ReturnElementNode* _NewReturnElementNode(const char *alias, AR_ExpNode *exp) {
@@ -152,27 +150,27 @@ AST_Validation AST_PerformValidations(RedisModuleCtx *ctx, const NEWAST *ast) {
 /* Counts the number of right to left edges,
  * if it's greater than half the number of edges in pattern
  * return true.*/
-static bool _AST_should_reverse_pattern(Vector *pattern) {
-    int transposed = 0; // Number of transposed edges
-    int edge_count = 0; // Total number of edges.
-    int pattern_length = Vector_Size(pattern);
+// static bool _AST_should_reverse_pattern(Vector *pattern) {
+    // int transposed = 0; // Number of transposed edges
+    // int edge_count = 0; // Total number of edges.
+    // int pattern_length = Vector_Size(pattern);
 
-    // Count how many edges are going right to left.
-    for(int i = 0; i < pattern_length; i++) {
-        AST_GraphEntity *match_element;
-        Vector_Get(pattern, i, &match_element);
+    // // Count how many edges are going right to left.
+    // for(int i = 0; i < pattern_length; i++) {
+        // AST_GraphEntity *match_element;
+        // Vector_Get(pattern, i, &match_element);
 
-        if(match_element->t != N_LINK) continue;
+        // if(match_element->t != N_LINK) continue;
 
-        edge_count++;
-        AST_LinkEntity *edge = (AST_LinkEntity*)match_element;
-        if(edge->direction ==  N_RIGHT_TO_LEFT) transposed++;
-    }
+        // edge_count++;
+        // AST_LinkEntity *edge = (AST_LinkEntity*)match_element;
+        // if(edge->direction ==  N_RIGHT_TO_LEFT) transposed++;
+    // }
 
-    // No edges.
-    if(edge_count == 0) return false;
-    return (transposed > edge_count/2);
-}
+    // // No edges.
+    // if(edge_count == 0) return false;
+    // return (transposed > edge_count/2);
+// }
 
 /* Construct a new MATCH clause by cloning the current one
  * and reversing traversal patterns to reduce matrix transpose

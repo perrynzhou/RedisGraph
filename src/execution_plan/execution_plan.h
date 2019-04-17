@@ -8,7 +8,6 @@
 #define __EXECUTION_PLAN_H__
 
 #include "./ops/op.h"
-#include "../parser/ast.h"
 #include "../graph/graph.h"
 #include "../resultset/resultset.h"
 #include "../filter_tree/filter_tree.h"

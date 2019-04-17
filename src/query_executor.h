@@ -8,7 +8,6 @@
 #define __QUERY_EXECUTOR_H
 
 #include "redismodule.h"
-#include "parser/ast.h"
 #include "parser/newast.h"
 #include "graph/query_graph.h"
 #include "arithmetic/arithmetic_expression.h"

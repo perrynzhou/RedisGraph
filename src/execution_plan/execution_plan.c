@@ -135,18 +135,19 @@ Vector* _ExecutionPlan_Locate_References(OpBase *root, OpBase **op, Vector *refe
     return seen;
 }
 
-void _Count_Graph_Entities(const Vector *entities, size_t *node_count, size_t *edge_count) {
-    for(int i = 0; i < Vector_Size(entities); i++) {
-        AST_GraphEntity *entity;
-        Vector_Get(entities, i, &entity);
+// TODO
+// void _Count_Graph_Entities(const Vector *entities, size_t *node_count, size_t *edge_count) {
+    // for(int i = 0; i < Vector_Size(entities); i++) {
+        // AST_GraphEntity *entity;
+        // Vector_Get(entities, i, &entity);
 
-        if(entity->t == N_ENTITY) {
-            (*node_count)++;
-        } else if(entity->t == N_LINK) {
-            (*edge_count)++;
-        }
-    }
-}
+        // if(entity->t == N_ENTITY) {
+            // (*node_count)++;
+        // } else if(entity->t == N_LINK) {
+            // (*edge_count)++;
+        // }
+    // }
+// }
 
 // TODO is this necessary?
 // void _Determine_Graph_Size(const AST *ast, size_t *node_count, size_t *edge_count) {
@@ -541,8 +542,9 @@ static void _ExecutionPlan_StreamTaps(OpBase *root, OpBase ***taps) {
     }
 }
 
-static ExecutionPlan *_ExecutionPlan_Connect(ExecutionPlan *a, ExecutionPlan *b, AST *ast) {
+static ExecutionPlan *_ExecutionPlan_Connect(ExecutionPlan *a, ExecutionPlan *b) {
     assert(false);
+    NEWAST *ast = NEWAST_GetFromTLS();
     assert(a &&
            b &&
            (a->root->type == OPType_PROJECT || a->root->type == OPType_AGGREGATE));
@@ -565,7 +567,7 @@ static ExecutionPlan *_ExecutionPlan_Connect(ExecutionPlan *a, ExecutionPlan *b,
             tap = taps[i];
             if(tap->type & OP_SCAN) {
                 // Connect via cartesian product
-                OpBase *cartesianProduct = NewCartesianProductOp(AST_AliasCount(ast));
+                OpBase *cartesianProduct = NewCartesianProductOp(NEWAST_AliasCount(ast));
                 ExecutionPlan_PushBelow(tap, cartesianProduct);
                 _OpBase_AddChild(cartesianProduct, a->root);
                 break;
@@ -601,7 +603,7 @@ ExecutionPlan* NewExecutionPlan(RedisModuleCtx *ctx, GraphContext *gc, bool expl
     for(unsigned int i = 0; i < 1; i++) { // TODO WITH
         curr_plan = _NewExecutionPlan(ctx, result_set);
         if(i == 0) plan = curr_plan;
-        else plan = _ExecutionPlan_Connect(plan, curr_plan, NULL);
+        else plan = _ExecutionPlan_Connect(plan, curr_plan);
         // else plan = _ExecutionPlan_Connect(plan, curr_plan, ast[i]);
 
         if(NEWAST_ContainsClause(ast->root, CYPHER_AST_FILTER)) {
