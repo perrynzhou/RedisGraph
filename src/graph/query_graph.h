@@ -38,7 +38,7 @@ void QueryGraph_AddPath(const GraphContext *gc, const NEWAST *ast, QueryGraph *q
 /* Adds all paths described in an AST pattern node (from a
  * MATCH or CREATE clause) to a meta-graph that describes all
  * nodes and relationships in a query. */
-void BuildQueryGraph(const GraphContext *gc, QueryGraph *query_graph, const cypher_astnode_t *pattern);
+QueryGraph* BuildQueryGraph(const GraphContext *gc, const NEWAST *ast);
 
 /* Checks if graph contains given node
  * Returns 1 if so, 0 otherwise */ 

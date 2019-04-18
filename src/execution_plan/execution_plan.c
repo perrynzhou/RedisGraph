@@ -249,59 +249,6 @@ OpBase* ExecutionPlan_Locate_References(OpBase *root, Vector *references) {
     return op;
 }
 
-/* Build a complete query graph from the clauses that can introduce entities
- * (MATCH, MERGE, and CREATE) */
-// TODO Depending on how path uniqueness is specified, this may be too inclusive?
-QueryGraph* _BuildFullQueryGraph(GraphContext *gc, NEWAST *ast) {
-    /* Predetermine graph size: (entities in both MATCH and CREATE clauses)
-     * have graph object maintain an entity capacity, to avoid reallocs,
-     * problem was reallocs done by CREATE clause, which invalidated old references in ExpandAll. */
-    // TODO We previously counted all graph entities prior to building the QueryGraph (apparently
-    // to avoid the realloc bug described here. Does this problem still exist?
-    // If so, re-introduce similar logic.
-    size_t node_count;
-    size_t edge_count;
-    node_count = edge_count = NEWAST_AliasCount(ast);
-    // _Determine_Graph_Size(old_ast, &node_count, &edge_count);
-    QueryGraph *qg = QueryGraph_New(node_count, edge_count);
-
-    unsigned int clause_count = cypher_astnode_nchildren(ast->root);
-    // We are interested in every path held in a MATCH or CREATE pattern,
-    // and the (single) path described by a MERGE clause.
-    const cypher_astnode_t *clauses[clause_count];
-
-    // MATCH clauses
-    uint match_count = NewAST_GetTopLevelClauses(ast->root, CYPHER_AST_MATCH, clauses);
-    for (uint i = 0; i < match_count; i ++) {
-        const cypher_astnode_t *pattern = cypher_ast_match_get_pattern(clauses[i]);
-        uint npaths = cypher_ast_pattern_npaths(pattern);
-        for (uint j = 0; j < npaths; j ++) {
-            const cypher_astnode_t *path = cypher_ast_pattern_get_path(pattern, j);
-            QueryGraph_AddPath(gc, ast, qg, path);
-        }
-    }
-
-    // CREATE clauses
-    uint create_count = NewAST_GetTopLevelClauses(ast->root, CYPHER_AST_CREATE, clauses);
-    for (uint i = 0; i < create_count; i ++) {
-        const cypher_astnode_t *pattern = cypher_ast_create_get_pattern(clauses[i]);
-        uint npaths = cypher_ast_pattern_npaths(pattern);
-        for (uint j = 0; j < npaths; j ++) {
-            const cypher_astnode_t *path = cypher_ast_pattern_get_path(pattern, j);
-            QueryGraph_AddPath(gc, ast, qg, path);
-        }
-    }
-
-    // MERGE clauses
-    uint merge_count = NewAST_GetTopLevelClauses(ast->root, CYPHER_AST_MERGE, clauses);
-    for (uint i = 0; i < merge_count; i ++) {
-        const cypher_astnode_t *path = cypher_ast_merge_get_pattern_path(clauses[i]);
-        QueryGraph_AddPath(gc, ast, qg, path);
-    }
-
-    return qg;
-}
-
 /* Given an AST path, construct a series of scans and traversals to model it. */
 void _ExecutionPlan_BuildTraversalOps(QueryGraph *qg, FT_FilterNode *ft, const cypher_astnode_t *path, Vector *traversals) {
     GraphContext *gc = GraphContext_GetFromTLS();
@@ -426,7 +373,7 @@ ExecutionPlan* _NewExecutionPlan(RedisModuleCtx *ctx, ResultSet *result_set) {
     NEWAST *ast = NEWAST_GetFromTLS();
 
     // Build query graph
-    QueryGraph *qg = _BuildFullQueryGraph(gc, ast);
+    QueryGraph *qg = BuildQueryGraph(gc, ast);
     execution_plan->query_graph = qg;
 
     // Build filter tree
