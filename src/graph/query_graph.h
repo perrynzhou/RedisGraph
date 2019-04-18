@@ -20,10 +20,6 @@ typedef struct {
     Edge **edges;
     char **node_aliases;
     char **edge_aliases;
-    size_t node_count;
-    size_t edge_count;
-    size_t node_cap;
-    size_t edge_cap;
 } QueryGraph;
 
 /* Prepare a new query graph with initial allocations for
@@ -41,37 +37,37 @@ void QueryGraph_AddPath(const GraphContext *gc, const NEWAST *ast, QueryGraph *q
 QueryGraph* BuildQueryGraph(const GraphContext *gc, const NEWAST *ast);
 
 /* Checks if graph contains given node
- * Returns 1 if so, 0 otherwise */ 
-int QueryGraph_ContainsNode(const QueryGraph *graph, const Node *node);
+ * Returns 1 if so, 0 otherwise */
+int QueryGraph_ContainsNode(const QueryGraph *qg, const Node *node);
 
-int QueryGraph_ContainsEdge(const QueryGraph *graph, const Edge *edge);
-
-/* Retrieves node from graph */
-Node* QueryGraph_GetNodeById(const QueryGraph *g, long int id);
+int QueryGraph_ContainsEdge(const QueryGraph *qg, const Edge *edge);
 
 /* Retrieves node from graph */
-Edge* QueryGraph_GetEdgeById(const QueryGraph *g, long int id);
+Node* QueryGraph_GetNodeById(const QueryGraph *qg, long int id);
+
+/* Retrieves node from graph */
+Edge* QueryGraph_GetEdgeById(const QueryGraph *qg, long int id);
 
 /* Search the graph for a node with given alias */
-Node* QueryGraph_GetNodeByAlias(const QueryGraph *g, const char *alias);
+Node* QueryGraph_GetNodeByAlias(const QueryGraph *qg, const char *alias);
 
 /* Search the graph for an edge with given alias */
-Edge* QueryGraph_GetEdgeByAlias(const QueryGraph *g, const char *alias);
+Edge* QueryGraph_GetEdgeByAlias(const QueryGraph *qg, const char *alias);
 
 /* Search for either node/edge with given alias. */
-GraphEntity* QueryGraph_GetEntityByAlias(const QueryGraph *g, const char *alias);
+GraphEntity* QueryGraph_GetEntityByAlias(const QueryGraph *qg, const char *alias);
 
 /* Adds a new node to the graph */
-void QueryGraph_AddNode(QueryGraph* g, Node *n, char *alias);
+void QueryGraph_AddNode(QueryGraph *qg, Node *n, char *alias);
 
 /* Adds a new edge to the graph */
-void QueryGraph_ConnectNodes(QueryGraph *g, Node *src, Node *dest, Edge *e, char *edge_alias);
+void QueryGraph_ConnectNodes(QueryGraph *qg, Node *src, Node *dest, Edge *e, char *edge_alias);
 
-GraphEntity** QueryGraph_GetEntityRef(const QueryGraph *g, const char *alias);
-Node** QueryGraph_GetNodeRef(const QueryGraph *g, const Node *n);
-Edge** QueryGraph_GetEdgeRef(const QueryGraph *g, const Edge *e);
+GraphEntity** QueryGraph_GetEntityRef(const QueryGraph *qg, const char *alias);
+Node** QueryGraph_GetNodeRef(const QueryGraph *qg, const Node *n);
+Edge** QueryGraph_GetEdgeRef(const QueryGraph *qg, const Edge *e);
 
 /* Frees entire graph */
-void QueryGraph_Free(QueryGraph* g);
+void QueryGraph_Free(QueryGraph* qg);
 
 #endif

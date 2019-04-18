@@ -268,9 +268,11 @@ void AlgebraicExpression_PrependTerm(AlgebraicExpression *ae, GrB_Matrix m, bool
 }
 
 AlgebraicExpression **AlgebraicExpression_FromQuery(const NEWAST *ast, const QueryGraph *q, size_t *exp_count) {
-    assert(q->edge_count != 0);
+    uint edge_count = array_len(q->edges);
+    uint node_count = array_len(q->nodes);
+    assert(edge_count != 0);
 
-    AlgebraicExpression *exp = _AE_MUL(q->edge_count + q->node_count);
+    AlgebraicExpression *exp = _AE_MUL(edge_count + node_count);
     bool transpose; // Indicate if matrix operand needs to be transposed.
     Node *dest = NULL;
     Node *src = NULL;

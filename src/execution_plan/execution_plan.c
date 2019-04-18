@@ -464,8 +464,8 @@ ExecutionPlan* _NewExecutionPlan(RedisModuleCtx *ctx, ResultSet *result_set) {
         uint exp_count = array_len(ast->return_expressions);
         // TODO exps and aliases just separate the elements of ast->return_expressions,
         // which is dumb - change signatures to take ReturnElementNodes
-        exps = array_new(sizeof(AR_ExpNode), exp_count);
-        aliases = array_new(sizeof(AR_ExpNode), exp_count);
+        exps = array_new(AR_ExpNode*, exp_count);
+        aliases = array_new(char*, exp_count);
         for (uint i = 0; i < exp_count; i ++) {
             exps = array_append(exps, ast->return_expressions[i]->exp);
             aliases = array_append(aliases, (char*)ast->return_expressions[i]->alias);
@@ -552,7 +552,7 @@ static ExecutionPlan *_ExecutionPlan_Connect(ExecutionPlan *a, ExecutionPlan *b)
            (a->root->type == OPType_PROJECT || a->root->type == OPType_AGGREGATE));
     
     OpBase *tap;
-    OpBase **taps = array_new(sizeof(OpBase*), 1);
+    OpBase **taps = array_new(OpBase*, 1);
     _ExecutionPlan_StreamTaps(b->root, &taps);
 
     unsigned short tap_count = array_len(taps);
