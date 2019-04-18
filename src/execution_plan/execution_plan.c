@@ -447,7 +447,7 @@ ExecutionPlan* _NewExecutionPlan(RedisModuleCtx *ctx, ResultSet *result_set) {
     bool aggregate = false;
 
     // TODO with clauses, separate handling for their distinct/limit/etc
-    const cypher_astnode_t *with_clause = NULL;
+    const cypher_astnode_t *with_clause = NEWAST_GetClause(ast->root, CYPHER_AST_WITH);
 
     if(with_clause) {
         assert(false);
@@ -606,7 +606,7 @@ ExecutionPlan* NewExecutionPlan(RedisModuleCtx *ctx, GraphContext *gc, bool expl
         else plan = _ExecutionPlan_Connect(plan, curr_plan);
         // else plan = _ExecutionPlan_Connect(plan, curr_plan, ast[i]);
 
-        if(NEWAST_ContainsClause(ast->root, CYPHER_AST_FILTER)) {
+        if(curr_plan->filter_tree) {
             Vector *sub_trees = FilterTree_SubTrees(curr_plan->filter_tree);
 
             // TODO Re-introduce this functionality (or similar)

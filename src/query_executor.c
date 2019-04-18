@@ -347,17 +347,18 @@ void _prepareResultset(NEWAST *ast) {
 }
 */
 
-void ModifyAST(GraphContext *gc, NEWAST *new_ast) {
+void ModifyAST(GraphContext *gc, NEWAST *ast) {
     // for(int i = 0; i < array_len(ast); i++) {
         // if(ast[i]->matchNode) _AST_optimize_traversal_direction(ast[i]);
         // _inlineProperties(ast[i]);
     // }
 
-    NEWAST_BuildAliasMap(new_ast);
+    assert(NEWAST_GetClause(ast->root, CYPHER_AST_WITH) == NULL);
+    NEWAST_BuildAliasMap(ast);
 
-    _BuildReturnExpressions(new_ast);
-    if(NEWAST_ReturnClause_ContainsCollapsedNodes(new_ast->root) == 1) {
+    _BuildReturnExpressions(ast);
+    if(NEWAST_ReturnClause_ContainsCollapsedNodes(ast->root) == 1) {
         /* Expand collapsed nodes. */
-        ExpandCollapsedNodes(new_ast);
+        ExpandCollapsedNodes(ast);
     }
 }
