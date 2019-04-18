@@ -58,7 +58,7 @@ AlgebraicExpression** _AlgebraicExpression_IsolateVariableLenExps(AlgebraicExpre
      * have a variable length edge in them. */
     for(size_t expIdx = 0; expIdx < *expCount; expIdx++) {
         AlgebraicExpression *exp = expressions[expIdx];
-        if(exp->minHops != exp->maxHops) {
+        if(exp->minHops == exp->maxHops) {
             res[newExpCount++] = exp;
             continue;
         }
@@ -327,7 +327,7 @@ AlgebraicExpression **AlgebraicExpression_FromQuery(const NEWAST *ast, const Que
             for(unsigned int i = 0; i < labelCount; i++) {
                 const cypher_astnode_t *reltype = cypher_ast_rel_pattern_get_reltype(ast_entity, i);
                 assert(reltype);
-                const char *reltype_str = cypher_ast_label_get_name(reltype);
+                const char *reltype_str = cypher_ast_reltype_get_name(reltype);
                 Schema *s = GraphContext_GetSchema(gc, reltype_str, SCHEMA_EDGE);
                 if(!s) continue;
                 GrB_Matrix l = Graph_GetRelationMatrix(g, s->id);
