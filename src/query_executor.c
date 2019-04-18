@@ -80,7 +80,7 @@ void ExpandCollapsedNodes(NEWAST *ast) {
                 const cypher_astnode_t *alias_node = cypher_ast_unwind_get_alias(ast_entity);
                 const char *alias = cypher_ast_identifier_get_name(alias_node);
                 AR_ExpNode *exp = AR_EXP_NewConstOperandNode(SI_ConstStringVal((char*)alias));
-                ReturnElementNode *unwindElem = _NewReturnElementNode(elem->alias, exp);
+                ReturnElementNode *unwindElem = _NewReturnElementNode(elem->alias, exp); // TODO unused?
                 expandReturnElements = array_append(expandReturnElements, elem);
                 continue;
             } else {

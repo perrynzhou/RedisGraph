@@ -9,12 +9,12 @@
 #include "../util/arr.h"
 #include <assert.h>
 
-void _QueryGraph_AddEdge(QueryGraph *qg, Edge *e, char *alias) {
+static void _QueryGraph_AddEdge(QueryGraph *qg, Edge *e, char *alias) {
     qg->edges = array_append(qg->edges, e);
     qg->edge_aliases = array_append(qg->edge_aliases, alias);
 }
 
-GraphEntity* _QueryGraph_GetEntityByAlias(GraphEntity **entity_list, char **alias_list, const char* alias) {
+static GraphEntity* _QueryGraph_GetEntityByAlias(GraphEntity **entity_list, char **alias_list, const char* alias) {
     uint entity_count = array_len(entity_list);
     for(uint i = 0; i < entity_count; i ++) {
         char *entity_alias = alias_list[i];
@@ -25,7 +25,7 @@ GraphEntity* _QueryGraph_GetEntityByAlias(GraphEntity **entity_list, char **alia
     return NULL;
 }
 
-bool _QueryGraph_ContainsEntity(GraphEntity *entity, GraphEntity **entities) {
+static bool _QueryGraph_ContainsEntity(GraphEntity *entity, GraphEntity **entities) {
     uint entity_count = array_len(entities);
     for (uint i = 0; i < entity_count; i ++) {
         if(entities[i] == entity) return true;
@@ -33,7 +33,7 @@ bool _QueryGraph_ContainsEntity(GraphEntity *entity, GraphEntity **entities) {
     return false;
 }
 
-AR_ExpNode* _AST_GetNodeExpression(const NEWAST *ast, const cypher_astnode_t *node) {
+static AR_ExpNode* _AST_GetNodeExpression(const NEWAST *ast, const cypher_astnode_t *node) {
     AR_ExpNode *exp = NULL;
     char *alias = NULL;
 
@@ -50,11 +50,10 @@ AR_ExpNode* _AST_GetNodeExpression(const NEWAST *ast, const cypher_astnode_t *no
     return exp;
 }
 
-void _BuildQueryGraphAddNode(const GraphContext *gc,
+static void _BuildQueryGraphAddNode(const GraphContext *gc,
                              const NEWAST *ast,
                              const cypher_astnode_t *ast_entity,
                              QueryGraph *qg) {
-    const Graph *g = gc->g;
 
     AR_ExpNode *exp = _AST_GetNodeExpression(ast, ast_entity);
     char *alias = exp->operand.variadic.entity_alias;
@@ -86,7 +85,7 @@ void _BuildQueryGraphAddNode(const GraphContext *gc,
     }
 }
 
-void _BuildQueryGraphAddEdge(const GraphContext *gc,
+static void _BuildQueryGraphAddEdge(const GraphContext *gc,
                         const NEWAST *ast,
                         const cypher_astnode_t *entity,
                         const cypher_astnode_t *l_entity,
@@ -109,7 +108,6 @@ void _BuildQueryGraphAddEdge(const GraphContext *gc,
     /* Check for duplications. */
     if(QueryGraph_GetEdgeByAlias(qg, alias) != NULL) return;
 
-    const Graph *g = gc->g;
     const cypher_astnode_t *src_node;
     const cypher_astnode_t *dest_node;
 

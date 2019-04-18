@@ -259,8 +259,8 @@ void _ExecutionPlan_BuildTraversalOps(QueryGraph *qg, FT_FilterNode *ft, const c
         // Only one entity is specified - build a node scan.
         const cypher_astnode_t *ast_node = cypher_ast_pattern_path_get_element(path, 0);
         const cypher_astnode_t *ast_alias = cypher_ast_node_pattern_get_identifier(ast_node);
-        const char *alias;
-        if (ast_alias) alias = cypher_ast_identifier_get_name(ast_alias); // TODO get anon aliases
+        const char *alias = NULL;
+        if (ast_alias) alias = cypher_ast_identifier_get_name(ast_alias); // TODO need anon aliases?
         Node **n = QueryGraph_GetNodeRef(qg, QueryGraph_GetNodeByAlias(qg, alias));
         if(cypher_ast_node_pattern_nlabels(ast_node) > 0) {
             op = NewNodeByLabelScanOp(gc, *n);
