@@ -287,7 +287,6 @@ void _BuildReturnExpressions(NEWAST *ast) {
         if (alias_node) {
             alias = cypher_ast_identifier_get_name(alias_node);
             // TODO standardize logic (make a separate routine for this, can drop ID pointer elsewhere
-
             // TODO expressions like TYPE(e) have aliases, so can get in this block?
             // Kludge for testing; improve when possible
             void *v = TrieMap_Find(ast->identifier_map, (char*)alias, strlen(alias));

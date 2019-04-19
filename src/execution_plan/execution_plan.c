@@ -464,6 +464,7 @@ ExecutionPlan* _NewExecutionPlan(RedisModuleCtx *ctx, ResultSet *result_set) {
         uint exp_count = array_len(ast->return_expressions);
         // TODO exps and aliases just separate the elements of ast->return_expressions,
         // which is dumb - change signatures to take ReturnElementNodes
+
         exps = array_new(AR_ExpNode*, exp_count);
         aliases = array_new(char*, exp_count);
         for (uint i = 0; i < exp_count; i ++) {
